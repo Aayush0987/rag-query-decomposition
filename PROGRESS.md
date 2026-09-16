@@ -6,9 +6,9 @@ and commit at the end of every work session (see "Daily commit plan" below).
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | Study (LoRA, quantization, MLX, query rewriting, distillation, Recall@k/MRR, catastrophic forgetting) | Done |
-| 1 | Environment setup (mlx, mlx-lm, quantized Llama-3-8B, sanity check) | Not started |
-| 2 | Teacher label generation (Groq Llama-3-70B decompositions on HotpotQA) | Not started |
-| 3 | Baseline evaluation (Recall@k for raw / teacher / base-8B) | Not started |
+| 1 | Environment setup (mlx, mlx-lm, quantized Llama-3-8B, sanity check) | In progress (mlx/mlx-lm installed, model download running) |
+| 2 | Teacher label generation (Groq Llama-3-70B decompositions on HotpotQA) | Script written (`src/teacher_labels.py`), not yet run (needs GROQ_API_KEY) |
+| 3 | Baseline evaluation (Recall@k for raw / teacher / base-8B) | Script written (`src/eval_retrieval.py`), not yet run |
 | 4 | Data formatting (MLX JSONL, train/val/test split) | Not started |
 | 5 | LoRA fine-tuning | Not started |
 | 6 | Post-fine-tune evaluation (Recall@k comparison table) | Not started |
