@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Env / secrets
+.env
+*.key
+
+# Models & large artifacts
+models/
+checkpoints/
+adapters/
+*.gguf
+*.safetensors
+*.npz
+
+# Data (regenerable / large)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+faiss_index/
+*.index
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+wandb/
