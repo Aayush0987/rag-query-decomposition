@@ -8,7 +8,7 @@ and commit at the end of every work session (see "Daily commit plan" below).
 | 0 | Study (LoRA, quantization, MLX, query rewriting, distillation, Recall@k/MRR, catastrophic forgetting) | Done |
 | 1 | Environment setup (mlx, mlx-lm, quantized Llama-3-8B, sanity check) | Done — see docs/phase1_sanity_check.md |
 | 2 | Teacher label generation (decompositions on HotpotQA via Groq) | Validated on 300 samples (qwen/qwen3.8-27b substituted for decommissioned Llama-3-70B, see docs/phase2_notes.md); scaling to full set next |
-| 3 | Baseline evaluation (Recall@k for raw / teacher / base-8B) | Script written (`src/eval_retrieval.py`), not yet run |
+| 3 | Baseline evaluation (Recall@k for raw / teacher / base-8B) | Raw-query floor baseline done: Recall@5=0.7375, Recall@10=0.8625 (n=200, shared 1991-paragraph corpus). Teacher + base-8B rows pending full label set. |
 | 4 | Data formatting (MLX JSONL, train/val/test split) | Not started |
 | 5 | LoRA fine-tuning | Not started |
 | 6 | Post-fine-tune evaluation (Recall@k comparison table) | Not started |

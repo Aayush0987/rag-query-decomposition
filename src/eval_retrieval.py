@@ -25,19 +25,24 @@ from tqdm import tqdm
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
-def build_corpus(dataset):
-    """Flatten each example's context into (title, sentences) paragraphs and
-    return a global list of paragraph texts + an index mapping example id ->
-    the set of global paragraph indices that came from that example (needed
-    because HotpotQA's `context` field is per-question, not a shared corpus,
-    so we build one corpus per evaluated example to keep this self-contained
-    and tractable on a laptop)."""
+def build_shared_corpus(ds):
+    """Pool every context paragraph across the whole sampled eval set into one
+    shared corpus (deduplicated by title), so retrieval is a real search
+    problem — each question's gold passages sit among thousands of distractor
+    paragraphs pulled from every OTHER question's context, not just its own
+    ~10-paragraph distractor set. Building one tiny per-question index (the
+    previous approach) made Recall@10 trivially 1.0 whenever the corpus itself
+    only had ~10 paragraphs."""
     paragraphs = []
     titles = []
-    for title, sentences in zip(dataset["title"], dataset["sentences"]):
-        text = " ".join(sentences)
-        paragraphs.append(text)
-        titles.append(title)
+    seen_titles = set()
+    for row in ds:
+        for title, sentences in zip(row["context"]["title"], row["context"]["sentences"]):
+            if title in seen_titles:
+                continue
+            seen_titles.add(title)
+            paragraphs.append(" ".join(sentences))
+            titles.append(title)
     return paragraphs, titles
 
 
@@ -117,15 +122,17 @@ def main():
 
     teacher_labels = load_teacher_labels(args.labels) if args.strategy == "teacher" else None
 
+    print("Building shared corpus across all sampled questions...")
+    paragraphs, titles = build_shared_corpus(ds)
+    print(f"Shared corpus: {len(paragraphs)} unique paragraphs")
+    p_emb = embed(embedder, paragraphs)
+    index = faiss.IndexFlatIP(p_emb.shape[1])
+    index.add(p_emb)
+
     max_k = max(args.k)
     scores = {k: [] for k in args.k}
 
     for row in tqdm(ds, desc=f"Evaluating strategy={args.strategy}"):
-        paragraphs, titles = build_corpus(row["context"])
-        p_emb = embed(embedder, paragraphs)
-        index = faiss.IndexFlatIP(p_emb.shape[1])
-        index.add(p_emb)
-
         gold = gold_titles(row["supporting_facts"])
 
         if args.strategy == "raw":
