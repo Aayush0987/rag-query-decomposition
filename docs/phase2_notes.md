@@ -30,6 +30,28 @@ available strong models are:
   keep repo size down — a small excerpt may be kept for reference; the full
   label set for training lives in `data/raw/teacher_labels.jsonl`, gitignored)
 
+## Daily request quota (free tier)
+
+`qwen/qwen3.8-27b` on the Groq free tier is capped at **1000 requests/day**
+(separate from the per-minute token bucket). Between the 300-example
+validation run and initial testing, the daily quota was exhausted partway
+through the first full-scale run (2000 target), which caused it to silently
+slow to ~30s/request as it retried against 429s instead of failing fast.
+
+Fixes:
+- `decompose()` now distinguishes a transient per-minute rate limit (worth
+  retrying) from the daily request quota (`x-ratelimit-remaining-requests: 0`
+  with an hours-scale reset window) by inspecting the response headers, and
+  raises `QuotaExhausted` to stop the run cleanly instead of burning retries.
+- `teacher_labels.py` is now resumable: it loads already-labeled question ids
+  from the output file and appends only new ones, so hitting the daily quota
+  is a normal stopping point — just re-run the same command once the quota
+  resets (`x-ratelimit-reset-requests`, ~20h from exhaustion) to continue
+  toward the target `--n`.
+
+Given the 1000/day cap, reaching the brief's target of 2000-5000 labeled
+examples happens incrementally across multiple days rather than in one run.
+
 ## Also fixed: dataset repo id
 
 `hotpot_qa` (the canonical, non-namespaced dataset id) no longer resolves with

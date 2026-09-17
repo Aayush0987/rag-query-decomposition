@@ -17,7 +17,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from datasets import load_dataset
-from groq import Groq
+from groq import Groq, RateLimitError
 from tqdm import tqdm
 
 load_dotenv()
@@ -51,6 +51,11 @@ Question: {question}
 Sub-questions:"""
 
 
+class QuotaExhausted(Exception):
+    """Raised when Groq's daily request quota for the model is used up (as
+    opposed to a transient per-minute rate limit, which is worth retrying)."""
+
+
 def decompose(client: Groq, question: str, retries: int = 3) -> list[str]:
     prompt = FEW_SHOT_PROMPT.format(question=question)
     for attempt in range(retries):
@@ -63,6 +68,20 @@ def decompose(client: Groq, question: str, retries: int = 3) -> list[str]:
             )
             text = resp.choices[0].message.content.strip()
             return parse_subquestions(text)
+        except RateLimitError as e:
+            headers = getattr(e.response, "headers", {}) or {}
+            remaining = headers.get("x-ratelimit-remaining-requests")
+            reset = headers.get("x-ratelimit-reset-requests", "")
+            # A per-minute token/request limit resets in seconds and is worth
+            # retrying; the daily request quota resets in hours and is not.
+            if remaining == "0" and "h" in reset:
+                raise QuotaExhausted(
+                    f"Daily request quota exhausted for {TEACHER_MODEL} "
+                    f"(resets in {reset})."
+                )
+            wait = 2 ** attempt
+            print(f"  retry {attempt+1}/{retries} after rate limit (sleeping {wait}s)")
+            time.sleep(wait)
         except Exception as e:
             wait = 2 ** attempt
             print(f"  retry {attempt+1}/{retries} after error: {e} (sleeping {wait}s)")
@@ -80,9 +99,22 @@ def parse_subquestions(text: str) -> list[str]:
     return subqs
 
 
+def load_done_ids(out_path: Path) -> set[str]:
+    if not out_path.exists():
+        return set()
+    ids = set()
+    with open(out_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            ids.add(json.loads(line)["id"])
+    return ids
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=3000, help="number of questions to sample")
+    parser.add_argument("--n", type=int, default=3000, help="target total number of labeled examples")
     parser.add_argument("--out", type=str, default="data/raw/teacher_labels.jsonl")
     parser.add_argument("--sleep", type=float, default=0.3, help="seconds between calls (rate limiting)")
     args = parser.parse_args()
@@ -93,19 +125,33 @@ def main():
 
     client = Groq(api_key=api_key)
 
-    print("Loading HotpotQA...")
-    ds = load_dataset("hotpotqa/hotpot_qa", "distractor", split="train")
-    n = min(args.n, len(ds))
-    ds = ds.select(range(n))
-
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    done_ids = load_done_ids(out_path)
+    if done_ids:
+        print(f"Resuming: {len(done_ids)} examples already in {out_path}")
+
+    remaining_target = max(args.n - len(done_ids), 0)
+    if remaining_target == 0:
+        print(f"Target of {args.n} already reached.")
+        return
+
+    print("Loading HotpotQA...")
+    ds = load_dataset("hotpotqa/hotpot_qa", "distractor", split="train")
+    ds = ds.filter(lambda row: row["id"] not in done_ids)
+    ds = ds.select(range(min(remaining_target, len(ds))))
 
     written = 0
-    with open(out_path, "w") as f:
+    stopped_early = False
+    with open(out_path, "a") as f:
         for row in tqdm(ds, desc="Generating teacher labels"):
             question = row["question"]
-            subqs = decompose(client, question)
+            try:
+                subqs = decompose(client, question)
+            except QuotaExhausted as e:
+                print(f"\nStopping: {e}")
+                stopped_early = True
+                break
             if not subqs:
                 continue
             record = {
@@ -117,10 +163,14 @@ def main():
                 "context": row["context"],
             }
             f.write(json.dumps(record) + "\n")
+            f.flush()
             written += 1
             time.sleep(args.sleep)
 
-    print(f"Wrote {written}/{n} labeled examples to {out_path}")
+    total = len(done_ids) + written
+    print(f"Wrote {written} new examples this run ({total}/{args.n} total in {out_path})")
+    if stopped_early:
+        print("Re-run this same command later (once the quota resets) to continue.")
 
 
 if __name__ == "__main__":
