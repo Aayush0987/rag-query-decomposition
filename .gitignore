@@ -22,6 +22,7 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/raw/teacher_labels_excerpt.jsonl
 faiss_index/
 *.index
 

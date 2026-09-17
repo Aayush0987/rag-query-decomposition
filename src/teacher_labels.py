@@ -22,7 +22,13 @@ from tqdm import tqdm
 
 load_dotenv()
 
-TEACHER_MODEL = "llama-3.3-70b-versatile"
+# Note: the brief specifies Groq's Llama-3-70B, but that model has since been
+# removed from Groq's catalog. Groq's current strong free-tier chat models are
+# reasoning models (openai/gpt-oss-20b/120b) whose hidden chain-of-thought
+# tokens count against max_tokens and burn through the daily token quota very
+# fast for a task this simple. qwen/qwen3.8-27b answers directly with no
+# reasoning overhead and is used as the teacher instead (see docs/phase2_notes.md).
+TEACHER_MODEL = "qwen/qwen3.8-27b"
 
 FEW_SHOT_PROMPT = """You decompose multi-hop questions into atomic sub-questions.
 Each sub-question must be answerable from a single passage, and the sub-questions
@@ -88,7 +94,7 @@ def main():
     client = Groq(api_key=api_key)
 
     print("Loading HotpotQA...")
-    ds = load_dataset("hotpot_qa", "distractor", split="train")
+    ds = load_dataset("hotpotqa/hotpot_qa", "distractor", split="train")
     n = min(args.n, len(ds))
     ds = ds.select(range(n))
 

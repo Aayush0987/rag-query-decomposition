@@ -110,7 +110,7 @@ def main():
     args = parser.parse_args()
 
     print(f"Loading HotpotQA [{args.split}]...")
-    ds = load_dataset("hotpot_qa", "distractor", split=args.split)
+    ds = load_dataset("hotpotqa/hotpot_qa", "distractor", split=args.split)
     ds = ds.select(range(min(args.n, len(ds))))
 
     embedder = SentenceTransformer(EMBED_MODEL)
