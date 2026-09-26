@@ -116,7 +116,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n", type=int, default=3000, help="target total number of labeled examples")
     parser.add_argument("--out", type=str, default="data/raw/teacher_labels.jsonl")
-    parser.add_argument("--sleep", type=float, default=0.3, help="seconds between calls (rate limiting)")
+    parser.add_argument("--sleep", type=float, default=1.5, help="seconds between calls (rate limiting)")
     args = parser.parse_args()
 
     api_key = os.environ.get("GROQ_API_KEY")
