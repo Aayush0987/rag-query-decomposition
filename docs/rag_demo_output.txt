@@ -1,0 +1,30 @@
+{
+  "question": "What tribe what American Horse a part of?",
+  "sub_questions": [
+    "What tribe was American Horse a part of?"
+  ],
+  "retrieved_titles": [
+    "American Horse",
+    "American Horse (elder)",
+    "American Horse Council"
+  ],
+  "answer": "American Horse was a part of the Oglala Lakota tribe."
+}
+gold answer: American Horse (Oglala Lakota: "Wašíčuŋ Tȟašúŋke" in Standard Lakota Orthography) (a/k/a "American Horse the Elder") (1830–September 9, 1876) was an Oglala Lakota warrior chief renowned for Spartan courage and honor.
+{
+  "question": "What is a 2005 French-British computer-animated adventure fantasy film based on the television series \"The Magic Roundabout, that had an English film and television actor well known as a voice over actor ? ",
+  "sub_questions": [
+    "Who is the English film and television actor well known as a voice over actor?",
+    "What is the title of the 2005 French-British computer-animated adventure fantasy film based on the television series \"The Magic Roundabout\"?"
+  ],
+  "retrieved_titles": [
+    "Jim Conroy",
+    "The Magic Roundabout (film)",
+    "Michael Winslow",
+    "The Magic Roundabout",
+    "List of The Simpsons cast members",
+    "Magic Roundabout (Swindon)"
+  ],
+  "answer": "The answer is \"Doogal\" (also known as \"The Lord of the Springs\"), a 2005 French-British computer-animated adventure fantasy film based on the television series \"The"
+}
+gold answer: The Magic Roundabout

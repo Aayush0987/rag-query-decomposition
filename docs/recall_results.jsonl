@@ -1,1 +1,7 @@
-{"strategy": "raw", "n": 200, "recall@5": 0.7375, "recall@10": 0.8625}
+{"strategy": "raw", "label": "raw", "n": 135, "recall@5": 0.725925925925926, "recall@10": 0.8518518518518519}
+{"strategy": "teacher", "label": "teacher", "n": 135, "recall@5": 0.7185185185185186, "recall@10": 0.8296296296296296}
+{"strategy": "teacher", "label": "teacher+orig", "n": 135, "recall@5": 0.7518518518518519, "recall@10": 0.8518518518518519}
+{"strategy": "model", "label": "base", "n": 135, "recall@5": 0.662962962962963, "recall@10": 0.7814814814814814}
+{"strategy": "model", "label": "base+orig", "n": 135, "recall@5": 0.725925925925926, "recall@10": 0.8185185185185185}
+{"strategy": "model", "label": "finetuned", "n": 135, "recall@5": 0.7, "recall@10": 0.8185185185185185}
+{"strategy": "model", "label": "finetuned+orig", "n": 135, "recall@5": 0.7518518518518519, "recall@10": 0.8518518518518519}

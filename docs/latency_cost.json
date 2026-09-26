@@ -1,0 +1,17 @@
+{
+  "n": 30,
+  "local_fused_8b": {
+    "mean_ms": 818.1,
+    "p50_ms": 783.2,
+    "p95_ms": 1231.2,
+    "marginal_cost_usd": 0.0
+  },
+  "groq_teacher": {
+    "model": "qwen/qwen3.8-27b",
+    "mean_ms": 220.5,
+    "p50_ms": 198.2,
+    "p95_ms": 321.1,
+    "avg_prompt_tokens": 216.7,
+    "avg_completion_tokens": 30.7
+  }
+}

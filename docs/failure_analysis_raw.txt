@@ -1,0 +1,29 @@
+n=135
+1 sub-questions: n=13 raw=0.731 ft=0.615 ft+orig=0.731
+2 sub-questions: n=116 raw=0.728 ft=0.711 ft+orig=0.759
+3+ sub-questions: n=6 raw=0.667 ft=0.667 ft+orig=0.667
+ft-only vs raw: better on 11, worse on 18, tied on 106
+
+WORSE than raw (examples):
+- What comic book published the female superhero created by J. H. Williams III?
+    ft: ['Who created the female superhero?', 'What comic book published that superhero?']  (raw=1.0 ft=0.5)
+- When was the American fitness guru, actor, and comedian born who is known for his eccentric, flamboyant, and energetic personality and also a star of Rudolph the Red-Nosed Reindeer: The Movie?
+    ft: ['Who is the American fitness guru, actor, and comedian known for his eccentric, flamboyant, and energetic personality?', 'When was that person born?']  (raw=1.0 ft=0.5)
+- What town in Mineral County is part of the area that Republican legislator Nicholas Schaderer represents?
+    ft: ['Which town in Mineral County is part of the area represented by Republican legislator Nicholas Schaderer?']  (raw=0.5 ft=0.0)
+- When did the politician who represented the electoral district in Sydney's West resign from his political party?
+    ft: ["Who was the politician who represented the electoral district in Sydney's West?", 'When did that politician resign from his political party?']  (raw=0.5 ft=0.0)
+- In the 1990's, who built one of the three mills landmarks in California?
+    ft: ['Which three mills are considered landmarks in California?', 'Who built one of those mills in the 1990s?']  (raw=1.0 ft=0.5)
+- Celeborn, is a fictional character in J.R.R. Tolkien's Middle-earth legendarium, Celeborn is an Elf, and the husband of who?
+    ft: ['Who is the wife of Celeborn?']  (raw=1.0 ft=0.5)
+
+BETTER than raw (examples):
+- What tribe what American Horse a part of?
+    ft: ['What tribe was American Horse a part of?']  (raw=0.5 ft=1.0)
+- Where is the headquarter of an American restaurant holding company who's chairman and chief executive officer was Jon L. Luther?
+    ft: ['Who is the chairman and chief executive officer of an American restaurant holding company?', 'Where is the headquarter of that American restaurant holding company?']  (raw=0.5 ft=1.0)
+- This footballer played in the top divisions in Italy, Spain, England and Germany and is known for what?
+    ft: ['Which footballer played in the top divisions in Italy, Spain, England, and Germany?', 'What is that footballer known for?']  (raw=0.0 ft=0.5)
+- Mary Small served the county whose seat is what town?
+    ft: ['What county is Mary Small serving?', 'What town is the county seat of that county?']  (raw=0.5 ft=1.0)

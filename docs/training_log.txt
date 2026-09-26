@@ -1,0 +1,15 @@
+Trainable parameters: 0.085% (6.816M/8030.261M)
+Iter 1: Val loss 1.154
+Iter 50: Val loss 0.250
+Iter 100: Val loss 0.214
+Iter 150: Val loss 0.210
+Iter 200: Val loss 0.226
+Iter 250: Val loss 0.210
+Iter 300: Val loss 0.207
+Iter 350: Val loss 0.215
+Iter 400: Val loss 0.222
+Iter 450: Val loss 0.226
+Iter 500: Val loss 0.221
+Iter 550: Val loss 0.252
+Iter 600: Val loss 0.323
+Test loss 0.225, Test ppl 1.252.

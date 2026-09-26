@@ -1,7 +1,7 @@
 """Local MLX decomposer used by the API, RAG pipeline, and benchmark."""
 import threading
 
-from mlx_lm import generate, load
+from mlx_lm import load, stream_generate
 
 from prompts import build_prompt, parse_subquestions
 
@@ -16,9 +16,16 @@ class LocalDecomposer:
     def generate(self, prompt: str, max_tokens: int = 150) -> str:
         messages = [{"role": "user", "content": prompt}]
         formatted = self.tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+        text = ""
         with self._lock:
-            return generate(self.model, self.tokenizer, prompt=formatted,
-                            max_tokens=max_tokens, verbose=False)
+            # Llama-3 ends turns with <|eot_id|>, which mlx does not treat as a
+            # stop token here; without stopping we generate to max_tokens.
+            for chunk in stream_generate(self.model, self.tokenizer, prompt=formatted,
+                                         max_tokens=max_tokens):
+                text += chunk.text
+                if "<|eot_id|>" in text or "<|end_of_text|>" in text:
+                    break
+        return text
 
     def decompose(self, question: str) -> list[str]:
         return parse_subquestions(self.generate(build_prompt(question))) or [question]

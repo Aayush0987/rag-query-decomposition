@@ -1,41 +1,22 @@
 # Progress Tracker
 
-Tracks phase-by-phase status from `build-brief-query-decomposition.md`. Update this
-and commit at the end of every work session (see "Daily commit plan" below).
+Status per phase from `build-brief-query-decomposition.md`. Results and analysis live in [README.md](README.md).
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 0 | Study (LoRA, quantization, MLX, query rewriting, distillation, Recall@k/MRR, catastrophic forgetting) | Done |
-| 1 | Environment setup (mlx, mlx-lm, quantized Llama-3-8B, sanity check) | Done — see docs/phase1_sanity_check.md |
-| 2 | Teacher label generation (decompositions on HotpotQA via Groq) | Validated on 300 samples (qwen/qwen3.8-27b substituted for decommissioned Llama-3-70B, see docs/phase2_notes.md); scaling to full set next |
-| 3 | Baseline evaluation (Recall@k for raw / teacher / base-8B) | Raw-query floor baseline done: Recall@5=0.7375, Recall@10=0.8625 (n=200, shared 1991-paragraph corpus). Teacher + base-8B rows pending full label set. |
-| 4 | Data formatting (MLX JSONL, train/val/test split) | Not started |
-| 5 | LoRA fine-tuning | Not started |
-| 6 | Post-fine-tune evaluation (Recall@k comparison table) | Not started |
-| 7 | Integration demo (end-to-end RAG pipeline) | Not started |
-| 8 | Deployment (fused model + FastAPI `/decompose`, latency/cost comparison) | Not started |
-| 9 | Documentation (README with results, diagrams, failure analysis) | Not started |
+| 0 | Study notes | Done (docs/phase0_study_notes.md) |
+| 1 | Environment setup, quantized Llama-3-8B, sanity check | Done (docs/phase1_sanity_check.md) |
+| 2 | Teacher labels | Done at 1,338 labels (target was 2,000; Groq free-tier quota). Teacher is qwen/qwen3.8-27b since Llama-3-70B was removed from Groq. See docs/phase2_notes.md |
+| 3 | Baseline evaluation | Done: raw, base-8B, teacher (with and without the original question) |
+| 4 | Data formatting | Done: 1,070 / 133 / 135 split (src/format_data.py) |
+| 5 | LoRA fine-tuning | Done: rank 16, 600 iters, best checkpoint at iter 300 by validation loss (docs/training_log.txt) |
+| 6 | Post-fine-tune evaluation | Done: results table in README |
+| 7 | Integration demo | Done: src/rag_pipeline.py, sample in docs/rag_demo_output.txt |
+| 8 | Deployment | Done: fused model, FastAPI /decompose, latency/cost in docs/latency_cost.json |
+| 9 | Documentation | Done: README with results, hyperparameters, failure analysis, lessons |
 | 7.5 | Stretch: HyDE | Not started |
 
-## Daily commit plan
-
-To keep a visible commit streak without hollow commits, each session should end with
-at least one real commit. Natural stopping points per phase, roughly one or more
-commits per session:
-
-- Day 1: repo scaffold + Phase 0 notes (this commit)
-- Day 2: Phase 1 — MLX installed, model quantized/downloaded, sanity-check script + output
-- Day 3: Phase 2 — teacher label generation script, first batch of labels committed (data sample, not full raw dump if large)
-- Day 4: Phase 3 — FAISS baseline retrieval pipeline + Recall@k numbers for raw/teacher/base
-- Day 5: Phase 4 — data formatting script + JSONL splits (small enough to commit; else commit generation script + stats)
-- Day 6-7: Phase 5 — LoRA training runs, hyperparameter log, checkpoint selection notes (checkpoints themselves gitignored — log metrics in `docs/`)
-- Day 8: Phase 6 — post-fine-tune Recall@k, comparison table into README
-- Day 9: Phase 7 — end-to-end RAG demo script
-- Day 10: Phase 8 — fused model + FastAPI endpoint + latency/cost table
-- Day 11: Phase 9 — full README writeup
-- Day 12+: Phase 7.5 stretch (HyDE)
-
-Long-running steps (label generation batches, LoRA training) can span multiple
-sessions — commit intermediate progress (partial label files, in-progress training
-logs) rather than waiting for the phase to fully close, so a slow phase doesn't
-create a commit gap.
+## Known limitations
+- Test set is 135 questions; differences of a few points are within noise.
+- Labels: 1,338 rather than the 2,000+ target. `src/teacher_labels.py` is resumable to add more.
+- Teacher decomposition alone does not beat the raw query; the gain appears only when the original question is searched alongside the sub-questions.

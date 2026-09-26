@@ -16,7 +16,11 @@ Evaluates on the held-out test split written by src/format_data.py.
 
 import argparse
 import json
+import os
 from pathlib import Path
+
+# FAISS and torch each bundle OpenMP on macOS; multi-query search segfaults without this.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -80,17 +84,33 @@ def retrieve(model, index, titles, queries: list[str], k: int) -> list[str]:
     return seen
 
 
+CACHE_FILE = "data/processed/decomp_cache.jsonl"
+
+
 def model_decompose(mlx_model_path, question, adapter_path=None):
-    from mlx_lm import load, generate
-
+    """Decompose with a local MLX model; results are cached on disk keyed by
+    (model, adapter, question) so re-running variants doesn't regenerate."""
     if not hasattr(model_decompose, "_cache"):
-        model_decompose._cache = load(mlx_model_path, adapter_path=adapter_path)
-    model, tokenizer = model_decompose._cache
+        cache = {}
+        if os.path.exists(CACHE_FILE):
+            for line in open(CACHE_FILE):
+                r = json.loads(line)
+                cache[(r["model"], r["adapter"], r["question"])] = r["sub_questions"]
+        model_decompose._cache = cache
+        model_decompose._model = None
+    key = (mlx_model_path, adapter_path, question)
+    if key in model_decompose._cache:
+        return model_decompose._cache[key]
 
-    messages = [{"role": "user", "content": build_prompt(question)}]
-    formatted = tokenizer.apply_chat_template(messages, add_generation_prompt=True)
-    text = generate(model, tokenizer, prompt=formatted, max_tokens=150, verbose=False)
-    return parse_subquestions(text) or [question]
+    if model_decompose._model is None:
+        from decomposer import LocalDecomposer
+        model_decompose._model = LocalDecomposer(mlx_model_path, adapter_path)
+    subqs = model_decompose._model.decompose(question)
+    model_decompose._cache[key] = subqs
+    with open(CACHE_FILE, "a") as f:
+        f.write(json.dumps({"model": mlx_model_path, "adapter": adapter_path,
+                            "question": question, "sub_questions": subqs}) + "\n")
+    return subqs
 
 
 def main():
@@ -102,6 +122,8 @@ def main():
                         help="held-out labeled records (from format_data.py) to evaluate on")
     parser.add_argument("--model-path", type=str, default=None)
     parser.add_argument("--adapter-path", type=str, default=None)
+    parser.add_argument("--include-original", action="store_true",
+                        help="also search with the original question alongside the sub-questions")
     parser.add_argument("--label", type=str, default=None, help="row name in results (raw/base/finetuned/teacher)")
     parser.add_argument("--out", type=str, default=None, help="optional path to append JSON result line")
     args = parser.parse_args()
@@ -132,6 +154,9 @@ def main():
             queries = teacher_labels.get(row["id"], [row["question"]])
         else:
             queries = model_decompose(args.model_path, row["question"], args.adapter_path)
+
+        if args.include_original and args.strategy != "raw":
+            queries = [row["question"]] + queries
 
         retrieved = retrieve(embedder, index, titles, queries, max_k)
 
