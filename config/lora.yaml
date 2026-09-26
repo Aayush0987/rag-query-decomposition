@@ -1,0 +1,7 @@
+# Hyperparameters for mlx_lm.lora (Phase 5). CLI flags in scripts/train_lora.sh
+# cover model/data/iters/lr; this file sets the adapter shape.
+lora_parameters:
+  rank: 16
+  scale: 32.0      # alpha / rank = 2 (MLX calls alpha "scale")
+  dropout: 0.05
+  keys: ["self_attn.q_proj", "self_attn.k_proj", "self_attn.v_proj", "self_attn.o_proj"]

@@ -102,6 +102,7 @@ def main():
                         help="held-out labeled records (from format_data.py) to evaluate on")
     parser.add_argument("--model-path", type=str, default=None)
     parser.add_argument("--adapter-path", type=str, default=None)
+    parser.add_argument("--label", type=str, default=None, help="row name in results (raw/base/finetuned/teacher)")
     parser.add_argument("--out", type=str, default=None, help="optional path to append JSON result line")
     args = parser.parse_args()
 
@@ -137,7 +138,7 @@ def main():
         for k in args.k:
             scores[k].append(recall_at_k(retrieved, gold, k))
 
-    result = {"strategy": args.strategy, "n": len(ds)}
+    result = {"strategy": args.strategy, "label": args.label or args.strategy, "n": len(ds)}
     for k in args.k:
         mean_recall = float(np.mean(scores[k]))
         result[f"recall@{k}"] = mean_recall

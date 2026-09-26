@@ -20,8 +20,25 @@ model can be fine-tuned to approximate that decomposition quality locally.
 
 ## Architecture
 
-_Diagram to be added in Phase 9 (Phase 7 pipeline: query → decompose → retrieve
-per sub-question → merge → generate answer)._
+```mermaid
+flowchart LR
+    subgraph Training["Training (offline)"]
+        HQ[HotpotQA questions] --> T["Teacher (Groq API)<br/>few-shot decomposition"]
+        T --> D[(Teacher labels)]
+        D --> L["LoRA fine-tune<br/>Llama-3-8B 4-bit, MLX"]
+        L --> F[Fused local model]
+    end
+    subgraph Serving["Serving / RAG pipeline"]
+        Q[User query] --> F2["/decompose<br/>fused local model"]
+        F2 --> S1[sub-question 1]
+        F2 --> S2[sub-question 2]
+        S1 --> R[(FAISS index)]
+        S2 --> R
+        R --> M[Merge + dedupe passages]
+        M --> A[Generate answer]
+    end
+    F -.-> F2
+```
 
 ## Tech stack
 
