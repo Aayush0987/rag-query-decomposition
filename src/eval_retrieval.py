@@ -7,9 +7,11 @@ model-generated decomposition). Sub-question results are merged (union,
 deduplicated) before computing recall for decomposition strategies.
 
 Usage:
-    python src/eval_retrieval.py --strategy raw --k 5 10 --n 500
-    python src/eval_retrieval.py --strategy teacher --labels data/raw/teacher_labels.jsonl --k 5 10
-    python src/eval_retrieval.py --strategy model --model-path <mlx model or adapter path> --k 5 10 --n 500
+    python src/eval_retrieval.py --strategy raw --k 5 10
+    python src/eval_retrieval.py --strategy teacher --k 5 10
+    python src/eval_retrieval.py --strategy model --model-path <mlx model> [--adapter-path <adapters dir>]
+
+Evaluates on the held-out test split written by src/format_data.py.
 """
 
 import argparse
@@ -17,10 +19,11 @@ import json
 from pathlib import Path
 
 import numpy as np
-from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 import faiss
 from tqdm import tqdm
+
+from prompts import build_prompt, parse_subquestions
 
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
@@ -62,45 +65,32 @@ def embed(model, texts):
 
 
 def retrieve(model, index, titles, queries: list[str], k: int) -> list[str]:
-    """Retrieve top-k paragraph titles for a list of queries (sub-questions),
-    merged and deduplicated preserving first-seen order."""
+    """Retrieve top-k paragraph titles per query (sub-question), merged by
+    interleaving ranks (every query's rank-1 hit, then every rank-2 hit, ...)
+    and deduplicated, so truncating to the first k gives each sub-question a
+    fair share rather than favouring the first one."""
     q_emb = embed(model, queries)
     _, idxs = index.search(q_emb, k)
     seen = []
-    for row in idxs:
-        for i in row:
-            t = titles[i]
+    for rank in range(k):
+        for row in idxs:
+            t = titles[row[rank]]
             if t not in seen:
                 seen.append(t)
     return seen
 
 
-def load_teacher_labels(path):
-    labels = {}
-    with open(path) as f:
-        for line in f:
-            rec = json.loads(line)
-            labels[rec["id"]] = rec["sub_questions"]
-    return labels
-
-
-def model_decompose(mlx_model_path, question):
+def model_decompose(mlx_model_path, question, adapter_path=None):
     from mlx_lm import load, generate
 
     if not hasattr(model_decompose, "_cache"):
-        model_decompose._cache = load(mlx_model_path)
+        model_decompose._cache = load(mlx_model_path, adapter_path=adapter_path)
     model, tokenizer = model_decompose._cache
 
-    prompt = (
-        "Decompose this multi-hop question into 2-3 atomic sub-questions, "
-        "one per line, numbered. Output only the sub-questions.\n\n"
-        f"Question: {question}\nSub-questions:"
-    )
-    messages = [{"role": "user", "content": prompt}]
+    messages = [{"role": "user", "content": build_prompt(question)}]
     formatted = tokenizer.apply_chat_template(messages, add_generation_prompt=True)
     text = generate(model, tokenizer, prompt=formatted, max_tokens=150, verbose=False)
-    lines = [l.strip().lstrip("0123456789.-) ").strip() for l in text.splitlines() if l.strip()]
-    return [l for l in lines if l] or [question]
+    return parse_subquestions(text) or [question]
 
 
 def main():
@@ -108,19 +98,19 @@ def main():
     parser.add_argument("--strategy", choices=["raw", "teacher", "model"], required=True)
     parser.add_argument("--k", type=int, nargs="+", default=[5, 10])
     parser.add_argument("--n", type=int, default=500, help="number of eval questions")
-    parser.add_argument("--split", type=str, default="validation")
-    parser.add_argument("--labels", type=str, default="data/raw/teacher_labels.jsonl")
+    parser.add_argument("--eval-file", type=str, default="data/processed/test_full.jsonl",
+                        help="held-out labeled records (from format_data.py) to evaluate on")
     parser.add_argument("--model-path", type=str, default=None)
+    parser.add_argument("--adapter-path", type=str, default=None)
     parser.add_argument("--out", type=str, default=None, help="optional path to append JSON result line")
     args = parser.parse_args()
 
-    print(f"Loading HotpotQA [{args.split}]...")
-    ds = load_dataset("hotpotqa/hotpot_qa", "distractor", split=args.split)
-    ds = ds.select(range(min(args.n, len(ds))))
+    with open(args.eval_file) as f:
+        ds = [json.loads(l) for l in f if l.strip()][: args.n]
 
     embedder = SentenceTransformer(EMBED_MODEL)
 
-    teacher_labels = load_teacher_labels(args.labels) if args.strategy == "teacher" else None
+    teacher_labels = {r["id"]: r["sub_questions"] for r in ds} if args.strategy == "teacher" else None
 
     print("Building shared corpus across all sampled questions...")
     paragraphs, titles = build_shared_corpus(ds)
@@ -140,7 +130,7 @@ def main():
         elif args.strategy == "teacher":
             queries = teacher_labels.get(row["id"], [row["question"]])
         else:
-            queries = model_decompose(args.model_path, row["question"])
+            queries = model_decompose(args.model_path, row["question"], args.adapter_path)
 
         retrieved = retrieve(embedder, index, titles, queries, max_k)
 
